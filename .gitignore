@@ -16,4 +16,7 @@ coverage/
 *.db
 .env
 .env.*
+*.pem
+*.key
+id_rsa*
 data/nightowl.db

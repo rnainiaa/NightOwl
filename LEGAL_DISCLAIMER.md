@@ -16,11 +16,11 @@ The use of NightOwl **IMPERATIVELY** requires:
 ### 2. LEGAL FRAMEWORK
 🔵 Compliance with the Criminal Code of Canada
 All activities must be conducted in full compliance with the Criminal Code of Canada, particularly the provisions relating to computer-related offences, including:
-    -Section 342.1 – Unauthorized use of a computer
-    -Section 430(1.1) – Mischief in relation to computer data
-    -Section 402.2 – Identity fraud
-    -Section 403 – Identity theft
-    -Section 380 – Fraud
+        -Section 342.1 – Unauthorized use of a computer
+        -Section 430(1.1) – Mischief in relation to computer data
+        -Section 402.2 – Identity fraud
+        -Section 403 – Identity theft
+        -Section 380 – Fraud
 Any technical intervention (penetration testing, vulnerability assessment, digital forensics investigations, etc.) must be carried out only with prior written authorization from the lawful owner of the systems.
 
 🔵 Protection of Personal Information

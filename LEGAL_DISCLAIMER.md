@@ -27,7 +27,9 @@ Any technical intervention (penetration testing, vulnerability assessment, digit
 Activities involving the processing of data must comply with Canadian privacy legislation, including:
 - Personal Information Protection and Electronic Documents Act (PIPEDA) – applicable to the private sector at the federal level
 - Applicable provincial privacy laws where relevant (e.g., Quebec’s Law 25)
+
 The following fundamental principles must be respected:
+
 - Informed consent
 - Limitation of collection
 - Use restricted to authorized purposes

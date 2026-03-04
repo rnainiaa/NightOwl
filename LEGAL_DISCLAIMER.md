@@ -15,15 +15,18 @@ The use of NightOwl **IMPERATIVELY** requires:
 
 ### 2. LEGAL FRAMEWORK
 🔵 Compliance with the Criminal Code of Canada:
+
 All activities must be conducted in full compliance with the Criminal Code of Canada, particularly the provisions relating to computer-related offences, including:
 - Section 342.1 – Unauthorized use of a computer
 - Section 430(1.1) – Mischief in relation to computer data
 - Section 402.2 – Identity fraud
 - Section 403 – Identity theft
 - Section 380 – Fraud
+
 Any technical intervention (penetration testing, vulnerability assessment, digital forensics investigations, etc.) must be carried out only with prior written authorization from the lawful owner of the systems.
 
-🔵 Protection of Personal Information
+🔵 Protection of Personal Information:
+
 Activities involving the processing of data must comply with Canadian privacy legislation, including:
 - Personal Information Protection and Electronic Documents Act (PIPEDA) – applicable to the private sector at the federal level
 - Applicable provincial privacy laws where relevant (e.g., Quebec’s Law 25)
@@ -36,11 +39,13 @@ The following fundamental principles must be respected:
 - Secure data retention
 - Right of access and correction
 
-🔵 Respect for Privacy
+🔵 Respect for Privacy:
+
 Any collection, analysis, or retention of personal information must be:
 - Strictly necessary for the authorized mandate
 - Proportionate to the intended objective
 - Protected by appropriate technical and organizational safeguards
+
 No interception, monitoring, or access to private communications may be conducted without proper legal authority or a judicial warrant where required.
 
 ### 3. USAGE RESTRICTIONS
